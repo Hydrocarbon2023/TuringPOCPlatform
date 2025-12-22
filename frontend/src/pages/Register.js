@@ -5,7 +5,7 @@ import {useNavigate} from 'react-router-dom';
 import api from '../api/api';
 
 const Register = () => {
-  const [loading, setLoading] = userState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const onFinish = async (values) => {

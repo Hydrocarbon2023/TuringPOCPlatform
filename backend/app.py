@@ -25,7 +25,7 @@ with app.app_context():
 class Register(Resource):
     def post(self):
         data = request.get_json()
-        user = User.query.filter_by(username=data['user_name']).first()
+        user = User.query.filter_by(user_name=data['user_name']).first()
         if user:
             return {'message': '用户名已存在，换一个吧TT'}, 400
         new_user = User(
@@ -45,10 +45,12 @@ class Register(Resource):
 class Login(Resource):
     def post(self):
         data = request.get_json()
-        user = User.query.filter_by(username=data['user_name']).first()
+        user = User.query.filter_by(user_name=data['user_name']).first()
         if user and user.check_password(data['password']):
             access_token = create_access_token(identity=user.user_id)
-            return {'token': access_token, 'role': user.role}
+            return {'token': access_token,
+                    'role': user.role,
+                    'user_name': user.user_name}
         return {'message': '用户名或密码错误TT'}, 401
 
 
