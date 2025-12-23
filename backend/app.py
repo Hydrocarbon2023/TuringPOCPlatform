@@ -47,7 +47,7 @@ class Login(Resource):
         data = request.get_json()
         user = User.query.filter_by(user_name=data['user_name']).first()
         if user and user.check_password(data['password']):
-            access_token = create_access_token(identity=user.user_id)
+            access_token = create_access_token(identity=str(user.user_id))
             return {'token': access_token,
                     'role': user.role,
                     'user_name': user.user_name}
@@ -98,17 +98,71 @@ class JoinTeam(Resource):
         return {'message': '成功加入团队！'}, 201
 
 
+class TeamDetail(Resource):
+    @jwt_required()
+    def get(self, team_id):
+        team = Team.query.get_or_404(team_id)
+        members = (
+            db.session.query(User.real_name, User.user_id).join(UserInTeam)
+            .filter(UserInTeam.team_id == team_id).all()
+        )
+        return {
+            'team_name': team.team_name,
+            'domain': team.domain,
+            'team_profile': team.team_profile,
+            'members': [{'id': m.user_id, 'name': m.real_name} for m in members]
+        }
+
+    @jwt_required()
+    def put(self, team_id):
+        data = request.get_json()
+        team = Team.query.get_or_404(team_id)
+        team.team_name = data.get('team_name', team.team_name)
+        team.domain = data.get('domain', team.domain)
+        team.team_profile = data.get('team_profile', team.team_profile)
+        db.session.commit()
+        return {'message': '团队信息更新成功！'}
+
+
+class QuitTeam(Resource):
+    @jwt_required()
+    def delete(self, team_id):
+        uid = get_jwt_identity()
+        record = UserInTeam.query.filter_by(user_id=uid, team_id=team_id).first()
+        if record:
+            db.session.delete(record)
+            db.session.commit()
+            return {'message': '已退出团队'}
+        return {'message': '退出失败，请检查是否加入过团队'}, 404
+
+
 class ProjectResource(Resource):
     @jwt_required()
     def post(self):
         data = request.get_json()
+        current_user_id = get_jwt_identity()
+        tid = data.get('team_id', 1)
+        current_team = Team.query.get(tid)
+
+        if not current_team:
+            default_team = Team(
+                team_name='新团队',
+                leader_id=current_user_id,
+                domain='暂未确定',
+                team_profile='这个团队很懒，什么都没有写',
+            )
+            db.session.add(default_team)
+            db.session.flush()
+            tid = default_team.team_id
+
         new_project = Project(
             project_name=data['project_name'],
-            team_id=data['team_id'],
+            team_id=tid,
             principal_id=get_jwt_identity(),
             domain = data['domain'],
             maturity_level = data['maturity_level'],
             project_description=data.get('project_description'),
+            status='待初审',
         )
         db.session.add(new_project)
         db.session.commit()
@@ -160,16 +214,33 @@ class ExpenditureResource(Resource):
                 'expenditure_id': new_expenditure.expenditure_id}, 201
 
 
+class UserAdmin(Resource):
+    @jwt_required()
+    def get(self):
+        users = User.query.all()
+        return [{
+            'user_id': u.user_id,
+            'user_name': u.user_name,
+            'real_name': u.real_name,
+            'role': u.role,
+            'affiliation': u.affiliation,
+            'email': u.email,
+        } for u in users]
+
+
 api.add_resource(Register, '/api/register')
 api.add_resource(Login, '/api/login')
 api.add_resource(TeamResource, '/api/teams', '/api/teams/<int:team_id>')
 api.add_resource(JoinTeam, '/api/teams/<int:team_id>/join')
+api.add_resource(TeamDetail, '/api/teams/<int:team_id>')
+api.add_resource(QuitTeam, '/api/teams/<int:team_id>/quit')
 api.add_resource(ProjectResource, '/api/projects',
                  '/api/projects/<int:project_id>')
 api.add_resource(FundRecordResource,
                  '/api/projects/<int:project_id>/fund')
 api.add_resource(ExpenditureResource,
                  '/api/projects/<int:project_id>/expenditure')
+api.add_resource(UserAdmin, '/api/admin/users')
 
 if __name__ == '__main__':
     app.run(debug=True)

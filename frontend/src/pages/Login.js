@@ -19,7 +19,7 @@ const Login = () => {
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', res.data.role);
       localStorage.setItem('user_name', res.data.user_name);
-      message.success(`欢迎回来，${res.data.user_name}$`);
+      message.success(`欢迎回来，${res.data.user_name}`);
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
