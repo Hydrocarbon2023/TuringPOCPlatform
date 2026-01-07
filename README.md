@@ -11,26 +11,26 @@
 
 项目默认配置使用特定的数据库账号和密码。在启动项目前，**必须**先在 MySQL 中执行以下 SQL 语句进行初始化：
 
-1. 打开终端或 MySQL 客户端：
-   ```bash
-   mysql -u root -p
-   ```
+打开终端或 MySQL 客户端：
+    ```bash
+    mysql -u root -p
+    ```
 执行以下 SQL 语句：
 
-```SQL
--- 1. 创建数据库 (指定 utf8mb4 以支持 Emoji 表情)
-CREATE DATABASE IF NOT EXISTS poc_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 2. 创建专用用户 (用户名: poc_user, 密码: nucifera)
--- 注意：如果您的 MySQL 版本较老(5.x)，语法可能略有不同
-CREATE USER IF NOT EXISTS 'poc_user'@'localhost' IDENTIFIED BY 'nucifera';
-
--- 3. 授予权限
-GRANT ALL PRIVILEGES ON poc_platform.* TO 'poc_user'@'localhost';
-
--- 4. 刷新权限
-FLUSH PRIVILEGES;
-```
+    ```SQL
+    -- 1. 创建数据库 (指定 utf8mb4 以支持 Emoji 表情)
+    CREATE DATABASE IF NOT EXISTS poc_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    
+    -- 2. 创建专用用户 (用户名: poc_user, 密码: nucifera)
+    -- 注意：如果您的 MySQL 版本较老(5.x)，语法可能略有不同
+    CREATE USER IF NOT EXISTS 'poc_user'@'localhost' IDENTIFIED BY 'nucifera';
+    
+    -- 3. 授予权限
+    GRANT ALL PRIVILEGES ON poc_platform.* TO 'poc_user'@'localhost';
+    
+    -- 4. 刷新权限
+    FLUSH PRIVILEGES;
+    ```
 注意：配置文件的路径为 backend/config.py。如果您想修改密码或数据库名，请记得同步修改该文件中的 SQLALCHEMY_DATABASE_URI。
 
 ## 🛠️ 快速开始
