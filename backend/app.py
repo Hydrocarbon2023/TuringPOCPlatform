@@ -228,6 +228,135 @@ class UserAdmin(Resource):
         } for u in users]
 
 
+class ProjectAudit(Resource):
+    @jwt_required()
+    def post(self, project_id):
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if user.role not in ['管理员', '秘书']:
+            return {'message': '权限不足'}, 403
+
+        data = request.get_json()
+        project = Project.query.get_or_404(project_id)
+
+        new_audit = AuditRecord(
+            project_id=project_id,
+            auditor_id=current_user_id,
+            audit_type=data['audit_type'],
+            result=data['result'],
+            comment=data.get('comment')
+        )
+        db.session.add(new_audit)
+
+        if data['result'] == '通过':
+            if project.status == '待初审':
+                project.status = '初审中'
+            elif project.status == '复审中':
+                project.status = '公示中'
+        else:
+            project.status = '已取消'
+
+        notify = Notification(
+            title=f'项目“{project.project_name}”审核更新',
+            user_id=project.principal_id,
+            content=f'您的项目审核结果为：{data["result"]}。'
+                    f'备注：{data.get("comment")}'
+        )
+        db.session.add(notify)
+
+        db.session.commit()
+        return {'message': '审核完成'}, 201
+
+
+class TaskAssignment(Resource):
+    @jwt_required()
+    def post(self, project_id):
+        data = request.get_json()
+        # 实际开发中需校验expert_id对应的用户是否为“评审人”角色
+        new_task = ReviewTask(
+            project_id=project_id,
+            expert_id=data['expert_id'],
+            deadline=data.get('deadline'),
+            status='待确认'
+        )
+        db.session.add(new_task)
+        db.session.commit()
+        return {'message': '已分配评审专家'}, 201
+
+
+class ExpertReview(Resource):
+    @jwt_required()
+    def post(self, task_id):
+        current_user = get_jwt_identity()
+        task = ReviewTask.query.get_or_404(task_id)
+
+        if str(task.expert_id) != str(current_user):
+            return {'message': '无权操作此任务！'}, 403
+
+        data = request.get_json()
+
+        total = (int(data['innovation']) + int(data['potentiality']) +
+                 int(data['feasibility']) + int(data['teamwork']))
+
+        opinion = ReviewOpinion(
+            task_id=task_id,
+            innovation_score=data['innovation'],
+            potentiality_score=data['potentiality'],
+            feasibility_score=data['feasibility'],
+            teamwork_score=data['teamwork'],
+            total_score=total,
+            comment=data['comment']
+        )
+
+        task.status = '已完成'
+        db.session.add(opinion)
+        db.session.commit()
+        return {'message': '评审意见已提交'}, 201
+
+
+class ProjectAchievement(Resource):
+    @jwt_required()
+    def post(self, project_id):
+        data = request.get_json()
+        new_ach = Achievement(
+            title=data['title'],
+            type=data['type'],
+            source_information=data.get('source_information')
+        )
+        db.session.add(new_ach)
+        db.session.flush()
+
+        link = AchievementOfProject(
+            achievement_id=new_ach.achievement_id,
+            project_id=project_id
+        )
+        db.session.add(link)
+        db.session.commit()
+        return {'message': '成果登记成功！'}, 201
+
+
+class UserNotifications(Resource):
+    @jwt_required()
+    def get(self):
+        uid = get_jwt_identity()
+        notifs = (Notification.query.filter_by(user_id=uid, is_read=False)
+                  .order_by(Notification.create_time.desc()).all())
+        return [{
+            'id': n.notification_id,
+            'title': n.title,
+            'content': n.content,
+            'time': str(n.create_time)
+        } for n in notifs]
+
+    @jwt_required()
+    def put(self, notification_id):
+        n = Notification.query.get_or_404(notification_id)
+        if str(n.user_id) == get_jwt_identity():
+            n.is_read = True
+            db.session.commit()
+            return {'message': '已读'}
+
+
 api.add_resource(Register, '/api/register')
 api.add_resource(Login, '/api/login')
 api.add_resource(TeamResource, '/api/teams', '/api/teams/<int:team_id>')
