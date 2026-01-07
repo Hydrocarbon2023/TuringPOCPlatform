@@ -1,96 +1,130 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Card, Table, Tag, Button, Modal, Form, Input, Select, message, Badge, theme, Descriptions, Skeleton } from 'antd';
-import { PlusOutlined, ProjectOutlined } from '@ant-design/icons';
-import { projectApi } from '../../api/api';
+import { Tabs, Card, Table, Tag, Button, Modal, Form, Input, message, Descriptions, theme, Space, List } from 'antd';
+import { ProjectOutlined, TeamOutlined, PlusOutlined, UserAddOutlined } from '@ant-design/icons';
+import { projectApi, teamApi } from '../../api/api';
 
 const UserDashboard = () => {
   const { token } = theme.useToken();
   const [projects, setProjects] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [myTeams, setMyTeams] = useState([]);
 
-  // 详情弹窗状态
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [currentProject, setCurrentProject] = useState(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-
+  const [teamModal, setTeamModal] = useState(false);
+  const [inviteModal, setInviteModal] = useState({ open: false, teamId: null });
+  const [detailModal, setDetailModal] = useState({ open: false, data: null });
+  const [declareModal, setDeclareModal] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      const res = await projectApi.getAll();
-      setProjects(res.data);
-    } catch (error) {}
+      const pRes = await projectApi.getAll();
+      setProjects(pRes.data);
+      const tRes = await teamApi.getMyTeams();
+      setMyTeams(tRes.data);
+    } catch(e) {}
   };
 
-  // 打开详情
-  const handleViewDetail = async (id) => {
-    setDetailModalOpen(true);
-    setLoadingDetail(true);
+  const handleCreateTeam = async (values) => {
     try {
-      const res = await projectApi.getDetail(id);
-      setCurrentProject(res.data);
-    } catch (e) {
-      message.error('获取详情失败');
-    } finally {
-      setLoadingDetail(false);
-    }
+      await teamApi.create(values);
+      message.success('团队创建成功');
+      setTeamModal(false);
+      loadData();
+    } catch(e) {}
   };
 
-  // 提交申报
-  const handleCreate = async (values) => {
+  const handleInvite = async (values) => {
+    try {
+      await teamApi.inviteMember(inviteModal.teamId, values);
+      message.success('邀请发送成功');
+      setInviteModal({ open: false, teamId: null });
+    } catch(e) {}
+  };
+
+  const handleDeclare = async (values) => {
     try {
       await projectApi.create(values);
       message.success('申报成功');
-      setIsModalOpen(false);
+      setDeclareModal(false);
       form.resetFields();
       loadData();
-    } catch (e) {}
+    } catch(e) {}
   };
 
-  const columns = [
-    { title: '项目名称', dataIndex: 'project_name' },
-    { title: '状态', dataIndex: 'status', render: s => <Badge status={s === '复审中' ? 'processing' : 'default'} text={s} /> },
-    {
-      title: '操作',
-      render: (_, record) => <Button type="link" onClick={() => handleViewDetail(record.project_id)}>查看详情</Button>,
-    },
+  const showDetail = async (id) => {
+    const res = await projectApi.getDetail(id);
+    setDetailModal({ open: true, data: res.data });
+  };
+
+  const projectColumns = [
+    { title: '项目名称', dataIndex: 'project_name', render: t => <b style={{ color: token.colorTextHeading }}>{t}</b> },
+    { title: '负责人', dataIndex: 'principal_name', render: n => <span style={{ color: token.colorTextSecondary }}>{n}</span> },
+    { title: '领域', dataIndex: 'domain', render: t => <Tag>{t}</Tag> },
+    { title: '状态', dataIndex: 'status', render: s => <Tag color={s === '孵化阶段' ? 'green' : 'blue'}>{s}</Tag> },
+    { title: '操作', render: (_, r) => <Button type="link" onClick={() => showDetail(r.project_id)}>详情</Button> }
+  ];
+
+  const teamColumns = [
+    { title: '团队名称', dataIndex: 'team_name', render: t => <b>{t}</b> },
+    { title: '队长', dataIndex: 'leader_name' },
+    { title: '我的角色', dataIndex: 'role', render: r => <Tag color={r==='队长'?'gold':'default'}>{r}</Tag> },
+    { title: '操作', render: (_, r) => r.role === '队长' && <Button size="small" icon={<UserAddOutlined />} onClick={() => setInviteModal({ open: true, teamId: r.team_id })}>邀请</Button> }
   ];
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ background: token.colorBgContainer, padding: 24, borderRadius: token.borderRadius, display: 'flex', justifyContent: 'space-between' }}>
-        <h2>我的工作台</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>申报新项目</Button>
+        <div><h2 style={{ margin: 0 }}>项目工作台</h2></div>
+        <Space>
+          <Button icon={<TeamOutlined />} onClick={() => setTeamModal(true)}>创建团队</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setDeclareModal(true)}>申报项目</Button>
+        </Space>
       </div>
 
-      <Card style={{ marginTop: 24, borderRadius: token.borderRadius }}>
-        <Tabs items={[{ key: '1', label: <span><ProjectOutlined /> 我的项目</span>, children: <Table dataSource={projects} columns={columns} rowKey="project_id" /> }]} />
+      <Card style={{ borderRadius: token.borderRadius }}>
+        <Tabs items={[
+          { key: '1', label: <span><ProjectOutlined /> 项目列表</span>, children: <Table dataSource={projects} columns={projectColumns} rowKey="project_id" /> },
+          { key: '2', label: <span><TeamOutlined /> 我的团队</span>, children: <Table dataSource={myTeams} columns={teamColumns} rowKey="team_id" /> }
+        ]} />
       </Card>
 
-      {/* 1. 申报弹窗 (保持不变，省略代码以节省篇幅，沿用之前的即可) */}
-      <Modal title="申报新项目" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null}>
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
+      <Modal title="申报新项目" open={declareModal} footer={null} onCancel={() => setDeclareModal(false)}>
+        <Form form={form} onFinish={handleDeclare} layout="vertical">
           <Form.Item name="project_name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="domain" label="领域" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="maturity_level" label="成熟度" rules={[{ required: true }]}><Select options={[{value:'研发阶段',label:'研发阶段'}]} /></Form.Item>
-          <Form.Item name="project_description" label="描述"><Input.TextArea /></Form.Item>
-          <Button type="primary" htmlType="submit" block>提交</Button>
+          <Form.Item name="project_description" label="简介"><Input.TextArea /></Form.Item>
+          <Button type="primary" htmlType="submit" block>提交申报</Button>
         </Form>
       </Modal>
 
-      {/* 2. 详情弹窗 (新增) */}
-      <Modal title="项目详情" open={detailModalOpen} onCancel={() => setDetailModalOpen(false)} footer={null} width={700}>
-        {loadingDetail || !currentProject ? <Skeleton active /> : (
+      <Modal title="组建团队" open={teamModal} footer={null} onCancel={() => setTeamModal(false)}>
+        <Form onFinish={handleCreateTeam} layout="vertical">
+          <Form.Item name="team_name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="domain" label="领域"><Input /></Form.Item>
+          <Button type="primary" htmlType="submit" block>创建</Button>
+        </Form>
+      </Modal>
+
+      <Modal title="邀请成员" open={inviteModal.open} footer={null} onCancel={() => setInviteModal({ open: false, teamId: null })}>
+        <Form onFinish={handleInvite} layout="vertical">
+          <Form.Item name="user_name" label="用户名" rules={[{ required: true }]}><Input /></Form.Item>
+          <Button type="primary" htmlType="submit" block>邀请</Button>
+        </Form>
+      </Modal>
+
+      <Modal title="项目详情" open={detailModal.open} onCancel={() => setDetailModal({ open: false, data: null })} footer={null} width={700}>
+        {detailModal.data && (
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="项目名称">{currentProject.project_name}</Descriptions.Item>
-            <Descriptions.Item label="负责人">{currentProject.principal_name}</Descriptions.Item>
-            <Descriptions.Item label="所属领域"><Tag color="blue">{currentProject.domain}</Tag></Descriptions.Item>
-            <Descriptions.Item label="当前状态"><Tag color="geekblue">{currentProject.status}</Tag></Descriptions.Item>
-            <Descriptions.Item label="成熟度">{currentProject.maturity_level}</Descriptions.Item>
-            <Descriptions.Item label="提交时间">{currentProject.submit_time}</Descriptions.Item>
-            <Descriptions.Item label="项目简介">{currentProject.project_description || '无'}</Descriptions.Item>
+            <Descriptions.Item label="名称">{detailModal.data.project_name}</Descriptions.Item>
+            <Descriptions.Item label="负责人">{detailModal.data.principal_name}</Descriptions.Item>
+            <Descriptions.Item label="状态"><Tag color="geekblue">{detailModal.data.status}</Tag></Descriptions.Item>
+            {(detailModal.data.status === '孵化阶段' || detailModal.data.status === '复审未通过') && (
+              <Descriptions.Item label="复审结果">
+                <div>均分：<b>{detailModal.data.review_info?.avg_score}</b></div>
+              </Descriptions.Item>
+            )}
+            <Descriptions.Item label="简介">{detailModal.data.project_description}</Descriptions.Item>
           </Descriptions>
         )}
       </Modal>

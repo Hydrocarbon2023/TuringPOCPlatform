@@ -22,8 +22,16 @@ api.interceptors.response.use(
 
 export const userApi = {
   login: (data) => api.post('/login', data),
-  register: (data) => api.post('/register', data), // 公开注册
-  adminCreateUser: (data) => api.post('/admin/users', data), // 管理员创建
+  register: (data) => api.post('/register', data),
+  adminCreateUser: (data) => api.post('/admin/users', data),
+};
+
+export const teamApi = {
+  create: (data) => api.post('/teams', data),
+  getAll: () => api.get('/teams'),
+  getMyTeams: () => api.get('/teams/my'),
+  inviteMember: (teamId, data) => api.post(`/teams/${teamId}/members`, data),
+  getMembers: (teamId) => api.get(`/teams/${teamId}/members`),
 };
 
 export const projectApi = {
@@ -31,11 +39,11 @@ export const projectApi = {
   getAll: () => api.get('/projects'),
   getDetail: (id) => api.get(`/projects/${id}`),
   audit: (id, data) => api.post(`/projects/${id}/audit`, data),
-  assignExpert: (id, data) => api.post(`/projects/${id}/assign`, data), // { expert_id, deadline }
+  assignExpert: (id, data) => api.post(`/projects/${id}/assign`, data),
 };
 
 export const reviewApi = {
-  getMyTasks: () => api.get('/reviews/my-tasks'), // 获取真数据
+  getMyTasks: () => api.get('/reviews/my-tasks'),
   submitReview: (taskId, data) => api.post(`/reviews/${taskId}`, data),
 };
 
