@@ -370,6 +370,9 @@ api.add_resource(FundRecordResource,
 api.add_resource(ExpenditureResource,
                  '/api/projects/<int:project_id>/expenditure')
 api.add_resource(UserAdmin, '/api/admin/users')
+api.add_resource(ProjectAudit, '/api/projects/<int:project_id>/audit')
+api.add_resource(TaskAssignment, '/api/projects/<int:project_id>/assign')
+api.add_resource(ExpertReview, '/api/reviews/<int:task_id>')
 
 if __name__ == '__main__':
     app.run(debug=True)
