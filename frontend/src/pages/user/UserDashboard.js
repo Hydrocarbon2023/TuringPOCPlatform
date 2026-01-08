@@ -61,7 +61,7 @@ const UserDashboard = () => {
     { title: '项目名称', dataIndex: 'project_name', render: t => <b style={{ color: token.colorTextHeading }}>{t}</b> },
     { title: '负责人', dataIndex: 'principal_name', render: n => <span style={{ color: token.colorTextSecondary }}>{n}</span> },
     { title: '领域', dataIndex: 'domain', render: t => <Tag>{t}</Tag> },
-    { title: '状态', dataIndex: 'status', render: s => <Tag color={s === '孵化阶段' ? 'green' : 'blue'}>{s}</Tag> },
+    { title: '状态', dataIndex: 'status', render: s => <Tag color={s === '已通过' ? 'green' : 'blue'}>{s}</Tag> },
     { title: '操作', render: (_, r) => <Button type="link" onClick={() => showDetail(r.project_id)}>详情</Button> }
   ];
 
@@ -119,11 +119,23 @@ const UserDashboard = () => {
             <Descriptions.Item label="名称">{detailModal.data.project_name}</Descriptions.Item>
             <Descriptions.Item label="负责人">{detailModal.data.principal_name}</Descriptions.Item>
             <Descriptions.Item label="状态"><Tag color="geekblue">{detailModal.data.status}</Tag></Descriptions.Item>
-            {(detailModal.data.status === '孵化阶段' || detailModal.data.status === '复审未通过') && (
+
+            {/* 【修改点】只要 review_info 存在且有分，就显示结果区 */}
+            {detailModal.data.review_info && detailModal.data.review_info.avg_score > 0 && (
               <Descriptions.Item label="复审结果">
-                <div>均分：<b>{detailModal.data.review_info?.avg_score}</b></div>
+                <div style={{ padding: 12, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
+                  <div style={{ marginBottom: 4 }}>专家评审均分：<b style={{ fontSize: 20, color: '#135200' }}>{detailModal.data.review_info.avg_score}</b> 分</div>
+                  <div style={{ color: '#888', fontSize: 12 }}>（基于 {detailModal.data.review_info.review_count} 位专家的评分）</div>
+                  <div style={{ marginTop: 8, fontWeight: 'bold' }}>
+                    {detailModal.data.review_info.avg_score > 60 ?
+                      <span style={{ color: 'green' }}>✅ 分数达标，项目已通过复审。</span> :
+                      <span style={{ color: 'red' }}>❌ 分数未达标 (需>60)，项目未通过。</span>
+                    }
+                  </div>
+                </div>
               </Descriptions.Item>
             )}
+
             <Descriptions.Item label="简介">{detailModal.data.project_description}</Descriptions.Item>
           </Descriptions>
         )}

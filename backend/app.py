@@ -198,11 +198,16 @@ class ProjectResource(Resource):
         uid = get_jwt_identity()
         user = User.query.get(uid)
 
+        if not user:
+            return {'message': '用户不存在'}, 401
+
         # 获取用户所在的所有团队ID
         my_team_ids = [r.team_id for r in UserInTeam.query.filter_by(user_id=uid).all()]
 
-        # === 详情查询 (JOIN User 获取 user_name) ===
+        # === 1. 获取详情 (单条查询) ===
         if project_id:
+            # JOIN User 获取 user_name
+            # 这里使用了外连接 (outerjoin)，即使没有负责人也能查出项目
             result = db.session.query(Project, User.user_name) \
                 .outerjoin(User, Project.principal_id == User.user_id) \
                 .filter(Project.project_id == project_id).first()
@@ -212,6 +217,7 @@ class ProjectResource(Resource):
 
             p, principal_name = result
 
+            # 权限检查
             is_my_project = (str(p.principal_id) == str(uid))
             is_team_member = (p.team_id in my_team_ids)
             has_permission = (is_my_project or is_team_member or user.role in ['秘书', '管理员', '评审人'])
@@ -219,13 +225,36 @@ class ProjectResource(Resource):
             if not has_permission:
                 return {'message': '无权查看此项目'}, 403
 
+            # 【状态自动修复逻辑】
+            if p.status == '复审中':
+                finished_reviews = ReviewTask.query.filter_by(project_id=p.project_id, status='已完成').count()
+                if finished_reviews >= 3:
+                    # 【显式 Join 修复】防止 SQLAlchemy 找不到 Join 路径
+                    opinions = db.session.query(ReviewOpinion) \
+                        .join(ReviewTask, ReviewOpinion.task_id == ReviewTask.task_id) \
+                        .filter(ReviewTask.project_id == p.project_id).all()
+
+                    if opinions:
+                        avg_score = sum(o.total_score for o in opinions) / len(opinions)
+                        if avg_score > 60:
+                            p.status = '已通过'
+                        else:
+                            p.status = '复审未通过'
+                        try:
+                            db.session.commit()  # 尝试保存状态
+                        except:
+                            db.session.rollback()  # 防止出错影响后续
+
+            # 获取复审信息
             review_info = {}
-            if p.status in ['孵化阶段', '复审未通过']:
-                opinions = db.session.query(ReviewOpinion).join(ReviewTask).filter(
-                    ReviewTask.project_id == p.project_id).all()
-                if opinions:
-                    avg = sum(o.total_score for o in opinions) / len(opinions)
-                    review_info = {'avg_score': round(avg, 1), 'review_count': len(opinions)}
+            # 【显式 Join 修复】
+            opinions = db.session.query(ReviewOpinion) \
+                .join(ReviewTask, ReviewOpinion.task_id == ReviewTask.task_id) \
+                .filter(ReviewTask.project_id == p.project_id).all()
+
+            if opinions:
+                avg = sum(o.total_score for o in opinions) / len(opinions)
+                review_info = {'avg_score': round(avg, 1), 'review_count': len(opinions)}
 
             return {
                 'project_id': p.project_id,
@@ -240,7 +269,7 @@ class ProjectResource(Resource):
                 'review_info': review_info
             }
 
-        # === 列表查询 (JOIN User 获取 user_name) ===
+        # === 2. 获取列表 (批量 JOIN 查询) ===
         query = db.session.query(Project, User.user_name) \
             .outerjoin(User, Project.principal_id == User.user_id)
 
@@ -264,20 +293,18 @@ class ProjectResource(Resource):
 
     @jwt_required()
     def post(self):
+        # ... (POST 代码保持不变，请确保不要删除之前的逻辑)
         data = request.get_json()
         uid = get_jwt_identity()
         user = User.query.get(uid)
 
-        # 智能团队归属逻辑
         tid = data.get('team_id')
         if not tid:
             user_teams = db.session.query(Team).join(UserInTeam).filter(UserInTeam.user_id == uid).all()
             if user_teams:
-                # 优先归属到自己创建的团队
                 own_team = next((t for t in user_teams if str(t.leader_id) == str(uid)), None)
                 tid = own_team.team_id if own_team else user_teams[0].team_id
             else:
-                # 自动创建个人团队
                 default_team = Team(
                     team_name=f"{user.user_name}的团队",
                     leader_id=uid,
@@ -416,7 +443,7 @@ class ExpertReview(Resource):
 
             project = Project.query.get(project_id)
             if avg_score > 60:
-                project.status = '孵化阶段'
+                project.status = '已通过'
                 msg = f"项目通过复审（均分{avg_score:.1f}），进入孵化阶段。"
             else:
                 project.status = '复审未通过'
