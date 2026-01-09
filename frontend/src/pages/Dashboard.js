@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {Layout, Spin, Result, Button} from 'antd';
 import {useNavigate} from 'react-router-dom';
 import UserDashboard from './user/UserDashboard';
-import ExpertDashboard from './expert/ExpertDashboard';
+import ReviewerDashboard from './reviewer/ReviewerDashboard';
 import AdminDashboard from './admin/AdminDashboard';
 import SecretaryDashboard from './secretary/SecretaryDashboard';
 
@@ -31,7 +31,7 @@ const Dashboard = () => {
       case '项目参与者':
         return <UserDashboard/>;
       case '评审人':
-        return <ExpertDashboard/>;
+        return <ReviewerDashboard/>;
       case '管理员':
         return <AdminDashboard/>;
       case '秘书':

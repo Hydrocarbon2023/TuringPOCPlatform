@@ -87,7 +87,7 @@ class ReviewTask(db.Model):
     task_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     project_id = db.Column(db.Integer, db.ForeignKey('Project.project_id'),
                            nullable=False)
-    expert_id = db.Column(db.Integer, db.ForeignKey('User.user_id'))
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('User.user_id'))
     assign_time = db.Column(db.DateTime, default=datetime.now)
     deadline = db.Column(db.DateTime)
     status = db.Column(db.Enum('待确认', '进行中', '已完成'), default='待确认')

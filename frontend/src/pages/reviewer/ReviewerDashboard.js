@@ -3,7 +3,7 @@ import {Card, List, Button, Statistic, Row, Col, Drawer, Input, Slider, message,
 import {FormOutlined} from '@ant-design/icons';
 import {reviewApi} from '../../api/api';
 
-const ExpertDashboard = () => {
+const ReviewerDashboard = () => {
   const {token} = theme.useToken();
   const [tasks, setTasks] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -101,4 +101,4 @@ const ExpertDashboard = () => {
   );
 };
 
-export default ExpertDashboard;
+export default ReviewerDashboard;

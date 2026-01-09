@@ -39,7 +39,7 @@ export const projectApi = {
   getAll: () => api.get('/projects'),
   getDetail: (id) => api.get(`/projects/${id}`),
   audit: (id, data) => api.post(`/projects/${id}/audit`, data),
-  assignExpert: (id, data) => api.post(`/projects/${id}/assign`, data),
+  assignReviewer: (id, data) => api.post(`/projects/${id}/assign`, data),
 };
 
 export const reviewApi = {

@@ -513,16 +513,16 @@ class TaskAssignment(Resource):
         try:
             user = get_current_user()
             if user.role != '秘书':
-                raise PermissionError('只有秘书有权分配专家')
+                raise PermissionError('只有秘书有权分配评审人')
 
             data = request.get_json()
-            if not data or 'expert_id' not in data:
-                raise ValidationError('专家ID不能为空')
+            if not data or 'reviewer_id' not in data:
+                raise ValidationError('评审人ID不能为空')
             
-            expert_id = data['expert_id']
+            reviewer_id = data['reviewer_id']
 
-            if ReviewTask.query.filter_by(project_id=project_id, expert_id=expert_id).first():
-                raise ValidationError('该专家已分配')
+            if ReviewTask.query.filter_by(project_id=project_id, reviewer_id=reviewer_id).first():
+                raise ValidationError('该评审人已分配')
 
             deadline = None
             if data.get('deadline'):
@@ -533,13 +533,13 @@ class TaskAssignment(Resource):
 
             task = ReviewTask(
                 project_id=project_id,
-                expert_id=expert_id,
+                reviewer_id=reviewer_id,
                 deadline=deadline,
                 status='待确认'
             )
             db.session.add(task)
             db.session.commit()
-            return {'message': '专家分配成功'}, 201
+            return {'message': '评审人分配成功'}, 201
         except APIException:
             raise
         except Exception as e:
@@ -548,14 +548,14 @@ class TaskAssignment(Resource):
             raise APIException('分配专家失败，请稍后重试', 500)
 
 
-# --- 5. 专家评审 ---
+# --- 5. 评审人评审 ---
 
-class ExpertTasksResource(Resource):
+class ReviewerTasksResource(Resource):
     @jwt_required()
     def get(self):
         uid = get_jwt_identity()
         tasks = db.session.query(ReviewTask, Project).join(Project, ReviewTask.project_id == Project.project_id) \
-            .filter(ReviewTask.expert_id == uid).all()
+            .filter(ReviewTask.reviewer_id == uid).all()
 
         return [{
             'task_id': t.ReviewTask.task_id,
@@ -567,13 +567,13 @@ class ExpertTasksResource(Resource):
         } for t in tasks]
 
 
-class ExpertReview(Resource):
+class ReviewerReview(Resource):
     @jwt_required()
     def post(self, task_id):
         try:
             uid = get_jwt_identity()
             task = ReviewTask.query.get_or_404(task_id)
-            if str(task.expert_id) != str(uid):
+            if str(task.reviewer_id) != str(uid):
                 raise PermissionError('无权操作此评审任务')
 
             data = request.get_json()
@@ -677,8 +677,8 @@ api.add_resource(ProjectResource, '/api/projects', '/api/projects/<int:project_i
 api.add_resource(ProjectAudit, '/api/projects/<int:project_id>/audit')
 api.add_resource(TaskAssignment, '/api/projects/<int:project_id>/assign')
 
-api.add_resource(ExpertTasksResource, '/api/reviews/my-tasks')
-api.add_resource(ExpertReview, '/api/reviews/<int:task_id>')
+api.add_resource(ReviewerTasksResource, '/api/reviews/my-tasks')
+api.add_resource(ReviewerReview, '/api/reviews/<int:task_id>')
 
 api.add_resource(NotificationResource, '/api/notifications')
 

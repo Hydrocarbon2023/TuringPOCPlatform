@@ -39,11 +39,11 @@ const SecretaryDashboard = () => {
 
   const handleAssign = async (values) => {
     try {
-      await projectApi.assignExpert(assignModal.projectId, {
-        expert_id: values.expert_id,
+      await projectApi.assignReviewer(assignModal.projectId, {
+        reviewer_id: values.reviewer_id,
         deadline: values.deadline?.format('YYYY-MM-DD')
       });
-      message.success('已分配专家');
+      message.success('已分配评审人');
       setAssignModal({open: false, projectId: null});
       assignForm.resetFields();
     } catch (e) {
@@ -88,9 +88,9 @@ const SecretaryDashboard = () => {
         <Input.TextArea rows={3} placeholder="意见" value={comment} onChange={e => setComment(e.target.value)}/>
       </Modal>
 
-      <Modal title="分配专家" open={assignModal.open} footer={null} onCancel={() => setAssignModal({open: false})}>
+      <Modal title="分配评审人" open={assignModal.open} footer={null} onCancel={() => setAssignModal({open: false})}>
         <Form form={assignForm} onFinish={handleAssign} layout="vertical">
-          <Form.Item name="expert_id" label="专家" rules={[{required: true}]}>
+          <Form.Item name="reviewer_id" label="评审人" rules={[{required: true}]}>
             <Select showSearch optionFilterProp="label">
               {users.filter(u => u.role === '评审人').map(u => (
                 <Select.Option key={u.user_id} value={u.user_id} label={u.real_name}>{u.real_name}</Select.Option>
