@@ -2,6 +2,7 @@ import {LogoutOutlined, UserOutlined} from '@ant-design/icons';
 import {Avatar, Dropdown, Layout, Space, theme} from 'antd';
 import React from 'react';
 import {useNavigate} from 'react-router-dom';
+import {glacierTheme} from '../styles/theme';
 
 const {Header} = Layout;
 
@@ -25,25 +26,55 @@ const AppHeader = () => {
 
   return (
     <Header style={{
-      background: token.colorBgContainer,
+      background: glacierTheme.glass.background,
+      backdropFilter: glacierTheme.glass.backdropFilter,
+      borderBottom: glacierTheme.glass.border,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-      padding: '0 24px',
+      boxShadow: glacierTheme.shadows.glass,
+      padding: `0 ${glacierTheme.spacing.lg}`,
       position: 'sticky',
       top: 0,
-      zIndex: 100
+      zIndex: 100,
+      transition: `all ${glacierTheme.transitions.normal}`,
     }}>
-      <div style={{fontSize: '20px', fontWeight: 'bold', color: token.colorPrimary}}>
+      <div style={{
+        fontSize: '20px',
+        fontWeight: 600,
+        background: `linear-gradient(135deg, ${glacierTheme.colors.primary} 0%, ${glacierTheme.colors.secondary} 100%)`,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      }}>
         🚀 图灵数智概念验证平台
       </div>
       <Space>
-        <span style={{color: '#666'}}>{role}</span>
+        <span style={{
+          color: glacierTheme.colors.textSecondary,
+          padding: `${glacierTheme.spacing.xs} ${glacierTheme.spacing.md}`,
+          borderRadius: glacierTheme.borderRadius.md,
+          background: glacierTheme.colors.surface,
+          fontSize: '13px',
+        }}>{role}</span>
         <Dropdown menu={{items}} placement="bottomRight">
-          <Space style={{cursor: 'pointer'}}>
-            <Avatar style={{backgroundColor: token.colorPrimary}} icon={<UserOutlined/>}/>
-            <span style={{fontWeight: 500}}>{username}</span>
+          <Space style={{
+            cursor: 'pointer',
+            padding: `${glacierTheme.spacing.xs} ${glacierTheme.spacing.md}`,
+            borderRadius: glacierTheme.borderRadius.md,
+            transition: `all ${glacierTheme.transitions.fast}`,
+          }}
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.background = glacierTheme.colors.surfaceHover;
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.background = 'transparent';
+                 }}>
+            <Avatar style={{
+              backgroundColor: glacierTheme.colors.primary,
+              boxShadow: glacierTheme.shadows.sm,
+            }} icon={<UserOutlined/>}/>
+            <span style={{fontWeight: 500, color: glacierTheme.colors.text}}>{username}</span>
           </Space>
         </Dropdown>
       </Space>

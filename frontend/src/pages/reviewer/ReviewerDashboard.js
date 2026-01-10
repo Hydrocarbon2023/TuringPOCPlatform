@@ -1,17 +1,22 @@
 import React, {useState, useEffect} from 'react';
-import {Card, List, Button, Statistic, Row, Col, Drawer, Input, Slider, message, theme, Tag, Empty} from 'antd';
-import {FormOutlined} from '@ant-design/icons';
+import {List, Button, Drawer, Input, Slider, message, Tag, Empty, Row, Col, Typography} from 'antd';
+import {FormOutlined, CheckCircleOutlined, ClockCircleOutlined} from '@ant-design/icons';
 import {reviewApi} from '../../api/api';
+import GlassCard from '../../components/GlassCard';
+import AnimatedButton from '../../components/AnimatedButton';
+import StatCard from '../../components/StatCard';
+import {glacierTheme} from '../../styles/theme';
+
+const {Title} = Typography;
 
 const ReviewerDashboard = () => {
-  const {token} = theme.useToken();
   const [tasks, setTasks] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [reviewData, setReviewData] = useState({
     innovation: 20,
     feasibility: 20,
-    teamwork: 30,
+    teamwork: 20,
     potentiality: 20,
     comment: ''
   });
@@ -38,64 +43,323 @@ const ReviewerDashboard = () => {
       await reviewApi.submitReview(currentTask.task_id, reviewData);
       message.success('评审意见已提交');
       setDrawerOpen(false);
+      setReviewData({
+        innovation: 20,
+        feasibility: 20,
+        teamwork: 20,
+        potentiality: 20,
+        comment: ''
+      });
       loadTasks();
     } catch (e) {
     }
   };
 
+  const pendingCount = tasks.filter(t => t.status !== '已完成').length;
+  const completedCount = tasks.filter(t => t.status === '已完成').length;
+
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 24}}>
-      <Row gutter={24}>
-        <Col span={8}><Card><Statistic title="待评审"
-                                       value={tasks.filter(t => t.status !== '已完成').length}/></Card></Col>
-        <Col span={8}><Card><Statistic title="已完成" value={tasks.filter(t => t.status === '已完成').length}
-                                       valueStyle={{color: token.colorSuccess}}/></Card></Col>
+    <div style={{display: 'flex', flexDirection: 'column', gap: glacierTheme.spacing.xl}}>
+      {/* 统计卡片 */}
+      <Row gutter={[glacierTheme.spacing.lg, glacierTheme.spacing.lg]}>
+        <Col xs={24} sm={12} lg={8}>
+          <StatCard
+            title="待评审任务"
+            value={pendingCount}
+            icon={<ClockCircleOutlined/>}
+            color="warning"
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={8}>
+          <StatCard
+            title="已完成任务"
+            value={completedCount}
+            icon={<CheckCircleOutlined/>}
+            color="success"
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={8}>
+          <StatCard
+            title="总任务数"
+            value={tasks.length}
+            icon={<FormOutlined/>}
+            color="info"
+          />
+        </Col>
       </Row>
 
-      <Card title="我的评审任务" style={{borderRadius: token.borderRadius}}>
+      {/* 任务列表 */}
+      <GlassCard>
+        <Title level={4} style={{
+          margin: 0,
+          marginBottom: glacierTheme.spacing.lg,
+          color: glacierTheme.colors.text,
+          fontWeight: 600,
+        }}>
+          我的评审任务
+        </Title>
         <List
           dataSource={tasks}
           locale={{emptyText: <Empty description="暂无任务"/>}}
           renderItem={(item) => (
-            <List.Item actions={[
-              item.status === '已完成' ? <Tag color="green">已提交</Tag> :
-                <Button type="primary" onClick={() => openReview(item)}>开始评审</Button>
-            ]}>
+            <List.Item
+              style={{
+                padding: glacierTheme.spacing.lg,
+                marginBottom: glacierTheme.spacing.md,
+                borderRadius: glacierTheme.borderRadius.md,
+                background: glacierTheme.colors.surface,
+                border: `1px solid ${glacierTheme.colors.border}`,
+                transition: `all ${glacierTheme.transitions.fast}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = glacierTheme.colors.surfaceHover;
+                e.currentTarget.style.transform = 'translateX(4px)';
+                e.currentTarget.style.boxShadow = glacierTheme.shadows.md;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = glacierTheme.colors.surface;
+                e.currentTarget.style.transform = 'translateX(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
               <List.Item.Meta
-                avatar={<FormOutlined style={{fontSize: 24, color: token.colorPrimary}}/>}
-                title={item.project_name}
-                description={<div>领域：{item.domain} | 截止：{item.deadline}</div>}
+                avatar={
+                  <div style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: glacierTheme.borderRadius.md,
+                    background: `linear-gradient(135deg, ${glacierTheme.colors.primaryLight} 0%, ${glacierTheme.colors.primary} 100%)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    color: '#fff',
+                  }}>
+                    <FormOutlined/>
+                  </div>
+                }
+                title={
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: glacierTheme.colors.text,
+                  }}>
+                    {item.project_name}
+                  </span>
+                }
+                description={
+                  <div style={{
+                    color: glacierTheme.colors.textSecondary,
+                    fontSize: '14px',
+                    marginTop: glacierTheme.spacing.xs,
+                  }}>
+                    <span>领域：{item.domain}</span>
+                    <span style={{margin: `0 ${glacierTheme.spacing.md}`}}>|</span>
+                    <span>截止：{item.deadline}</span>
+                  </div>
+                }
               />
+              <div>
+                {item.status === '已完成' ? (
+                  <Tag color={glacierTheme.colors.success} style={{
+                    padding: `${glacierTheme.spacing.xs} ${glacierTheme.spacing.md}`,
+                    borderRadius: glacierTheme.borderRadius.md,
+                    border: 'none',
+                  }}>
+                    已提交
+                  </Tag>
+                ) : (
+                  <AnimatedButton
+                    type="primary"
+                    onClick={() => openReview(item)}
+                    style={{
+                      borderRadius: glacierTheme.borderRadius.md,
+                    }}
+                  >
+                    开始评审
+                  </AnimatedButton>
+                )}
+              </div>
             </List.Item>
           )}
         />
-      </Card>
+      </GlassCard>
 
-      <Drawer title="项目评审" width={500} onClose={() => setDrawerOpen(false)} open={drawerOpen} footer={
-        <Button type="primary" block onClick={handleSubmitReview}>提交</Button>
-      }>
-        <div style={{marginBottom: 24}}><h4>创新性 (30)</h4><Slider max={30} value={reviewData.innovation}
-                                                                    onChange={v => setReviewData({
-                                                                      ...reviewData,
-                                                                      innovation: v
-                                                                    })}/></div>
-        <div style={{marginBottom: 24}}><h4>可行性 (30)</h4><Slider max={30} value={reviewData.feasibility}
-                                                                    onChange={v => setReviewData({
-                                                                      ...reviewData,
-                                                                      feasibility: v
-                                                                    })}/></div>
-        <div style={{marginBottom: 24}}><h4>团队能力 (20)</h4><Slider max={20} value={reviewData.teamwork}
-                                                                      onChange={v => setReviewData({
-                                                                        ...reviewData,
-                                                                        teamwork: v
-                                                                      })}/></div>
-        <div style={{marginBottom: 24}}><h4>潜力 (20)</h4><Slider max={20} value={reviewData.potentiality}
-                                                                  onChange={v => setReviewData({
-                                                                    ...reviewData,
-                                                                    potentiality: v
-                                                                  })}/></div>
-        <Input.TextArea rows={6} placeholder="评审意见..." value={reviewData.comment}
-                        onChange={e => setReviewData({...reviewData, comment: e.target.value})}/>
+      {/* 评审抽屉 */}
+      <Drawer
+        title={
+          <span style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            color: glacierTheme.colors.text,
+          }}>
+            项目评审
+          </span>
+        }
+        width={520}
+        onClose={() => setDrawerOpen(false)}
+        open={drawerOpen}
+        footer={
+          <AnimatedButton
+            type="primary"
+            block
+            onClick={handleSubmitReview}
+            style={{
+              height: '44px',
+              fontSize: '16px',
+            }}
+          >
+            提交评审
+          </AnimatedButton>
+        }
+        styles={{
+          body: {
+            background: glacierTheme.colors.background,
+          },
+        }}
+      >
+        <div style={{marginBottom: glacierTheme.spacing.xl}}>
+          <div style={{
+            marginBottom: glacierTheme.spacing.md,
+            color: glacierTheme.colors.text,
+            fontWeight: 500,
+          }}>
+            创新性 (30分)
+          </div>
+          <Slider
+            max={30}
+            value={reviewData.innovation}
+            onChange={v => setReviewData({...reviewData, innovation: v})}
+            trackStyle={{background: glacierTheme.colors.primary}}
+            handleStyle={{borderColor: glacierTheme.colors.primary}}
+          />
+          <div style={{
+            textAlign: 'right',
+            color: glacierTheme.colors.textSecondary,
+            fontSize: '12px',
+            marginTop: glacierTheme.spacing.xs,
+          }}>
+            {reviewData.innovation} 分
+          </div>
+        </div>
+
+        <div style={{marginBottom: glacierTheme.spacing.xl}}>
+          <div style={{
+            marginBottom: glacierTheme.spacing.md,
+            color: glacierTheme.colors.text,
+            fontWeight: 500,
+          }}>
+            可行性 (30分)
+          </div>
+          <Slider
+            max={30}
+            value={reviewData.feasibility}
+            onChange={v => setReviewData({...reviewData, feasibility: v})}
+            trackStyle={{background: glacierTheme.colors.primary}}
+            handleStyle={{borderColor: glacierTheme.colors.primary}}
+          />
+          <div style={{
+            textAlign: 'right',
+            color: glacierTheme.colors.textSecondary,
+            fontSize: '12px',
+            marginTop: glacierTheme.spacing.xs,
+          }}>
+            {reviewData.feasibility} 分
+          </div>
+        </div>
+
+        <div style={{marginBottom: glacierTheme.spacing.xl}}>
+          <div style={{
+            marginBottom: glacierTheme.spacing.md,
+            color: glacierTheme.colors.text,
+            fontWeight: 500,
+          }}>
+            团队能力 (20分)
+          </div>
+          <Slider
+            max={20}
+            value={reviewData.teamwork}
+            onChange={v => setReviewData({...reviewData, teamwork: v})}
+            trackStyle={{background: glacierTheme.colors.primary}}
+            handleStyle={{borderColor: glacierTheme.colors.primary}}
+          />
+          <div style={{
+            textAlign: 'right',
+            color: glacierTheme.colors.textSecondary,
+            fontSize: '12px',
+            marginTop: glacierTheme.spacing.xs,
+          }}>
+            {reviewData.teamwork} 分
+          </div>
+        </div>
+
+        <div style={{marginBottom: glacierTheme.spacing.xl}}>
+          <div style={{
+            marginBottom: glacierTheme.spacing.md,
+            color: glacierTheme.colors.text,
+            fontWeight: 500,
+          }}>
+            潜力 (20分)
+          </div>
+          <Slider
+            max={20}
+            value={reviewData.potentiality}
+            onChange={v => setReviewData({...reviewData, potentiality: v})}
+            trackStyle={{background: glacierTheme.colors.primary}}
+            handleStyle={{borderColor: glacierTheme.colors.primary}}
+          />
+          <div style={{
+            textAlign: 'right',
+            color: glacierTheme.colors.textSecondary,
+            fontSize: '12px',
+            marginTop: glacierTheme.spacing.xs,
+          }}>
+            {reviewData.potentiality} 分
+          </div>
+        </div>
+
+        <div>
+          <div style={{
+            marginBottom: glacierTheme.spacing.md,
+            color: glacierTheme.colors.text,
+            fontWeight: 500,
+          }}>
+            评审意见
+          </div>
+          <Input.TextArea
+            rows={6}
+            placeholder="请输入评审意见..."
+            value={reviewData.comment}
+            onChange={e => setReviewData({...reviewData, comment: e.target.value})}
+            style={{
+              borderRadius: glacierTheme.borderRadius.md,
+              border: `1px solid ${glacierTheme.colors.border}`,
+            }}
+          />
+        </div>
+
+        <div style={{
+          marginTop: glacierTheme.spacing.xl,
+          padding: glacierTheme.spacing.md,
+          borderRadius: glacierTheme.borderRadius.md,
+          background: glacierTheme.colors.surface,
+          textAlign: 'center',
+        }}>
+          <div style={{
+            color: glacierTheme.colors.textSecondary,
+            fontSize: '14px',
+            marginBottom: glacierTheme.spacing.xs,
+          }}>
+            总分
+          </div>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 600,
+            color: glacierTheme.colors.primary,
+          }}>
+            {reviewData.innovation + reviewData.feasibility + reviewData.teamwork + reviewData.potentiality} 分
+          </div>
+        </div>
       </Drawer>
     </div>
   );

@@ -42,6 +42,18 @@ export const projectApi = {
   assignReviewer: (id, data) => api.post(`/projects/${id}/assign`, data),
 };
 
+export const incubationApi = {
+  get: (projectId) => api.get(`/projects/${projectId}/incubation`),
+  createOrUpdate: (projectId, data) => api.post(`/projects/${projectId}/incubation`, data),
+};
+
+export const pocApi = {
+  getList: (projectId) => api.get(`/projects/${projectId}/poc`),
+  create: (projectId, data) => api.post(`/projects/${projectId}/poc`, data),
+  getDetail: (pocId) => api.get(`/poc/${pocId}`),
+  update: (pocId, data) => api.put(`/poc/${pocId}`, data),
+};
+
 export const reviewApi = {
   getMyTasks: () => api.get('/reviews/my-tasks'),
   submitReview: (taskId, data) => api.post(`/reviews/${taskId}`, data),
