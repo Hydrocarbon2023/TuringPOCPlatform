@@ -1,4 +1,6 @@
 import {Button, Form, Input, Select, message, Typography} from 'antd';
+
+const {Option} = Select;
 import React, {useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
@@ -117,6 +119,20 @@ const Register = () => {
                 border: `1px solid ${glacierTheme.colors.border}`,
               }}
             />
+          </Form.Item>
+          <Form.Item name='role' label="注册类型" initialValue="项目参与者">
+            <Select
+              placeholder='选择注册类型'
+              style={{
+                borderRadius: glacierTheme.borderRadius.md,
+                border: `1px solid ${glacierTheme.colors.border}`,
+              }}
+            >
+              <Option value="项目参与者">项目参与者</Option>
+              <Option value="评审人">评审人</Option>
+              <Option value="秘书">秘书</Option>
+              <Option value="企业支持者">企业支持者</Option>
+            </Select>
           </Form.Item>
           <Form.Item>
             <AnimatedButton

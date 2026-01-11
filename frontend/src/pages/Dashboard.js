@@ -5,6 +5,7 @@ import UserDashboard from './user/UserDashboard';
 import ReviewerDashboard from './reviewer/ReviewerDashboard';
 import AdminDashboard from './admin/AdminDashboard';
 import SecretaryDashboard from './secretary/SecretaryDashboard';
+import SupporterDashboard from './supporter/SupporterDashboard';
 
 const {Content} = Layout;
 
@@ -36,6 +37,8 @@ const Dashboard = () => {
         return <AdminDashboard/>;
       case '秘书':
         return <SecretaryDashboard/>;
+      case '企业支持者':
+        return <SupporterDashboard/>;
       default:
         return <Result status="403" title="权限错误"
                        extra={<Button onClick={() => navigate('/login')}>返回登录</Button>}/>;

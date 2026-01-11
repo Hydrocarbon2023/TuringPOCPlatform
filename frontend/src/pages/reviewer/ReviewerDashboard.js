@@ -1,16 +1,19 @@
 import React, {useState, useEffect} from 'react';
 import {List, Button, Drawer, Input, Slider, message, Tag, Empty, Row, Col, Typography} from 'antd';
-import {FormOutlined, CheckCircleOutlined, ClockCircleOutlined} from '@ant-design/icons';
+import {FormOutlined, CheckCircleOutlined, ClockCircleOutlined, RocketOutlined} from '@ant-design/icons';
+import {useNavigate} from 'react-router-dom';
 import {reviewApi} from '../../api/api';
 import GlassCard from '../../components/GlassCard';
 import AnimatedButton from '../../components/AnimatedButton';
 import StatCard from '../../components/StatCard';
 import {glacierTheme} from '../../styles/theme';
 
-const {Title} = Typography;
+const {Title, Text} = Typography;
 
 const ReviewerDashboard = () => {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
+  const [incubationProjects, setIncubationProjects] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [reviewData, setReviewData] = useState({
@@ -23,6 +26,7 @@ const ReviewerDashboard = () => {
 
   useEffect(() => {
     loadTasks();
+    loadIncubationProjects();
   }, []);
 
   const loadTasks = async () => {
@@ -30,6 +34,16 @@ const ReviewerDashboard = () => {
       const res = await reviewApi.getMyTasks();
       setTasks(res.data);
     } catch (e) {
+    }
+  };
+
+  const loadIncubationProjects = async () => {
+    try {
+      const res = await reviewApi.getIncubationProjects();
+      setIncubationProjects(res.data || []);
+    } catch (e) {
+      // 如果接口不存在或失败，静默处理
+      setIncubationProjects([]);
     }
   };
 
@@ -58,11 +72,24 @@ const ReviewerDashboard = () => {
   const pendingCount = tasks.filter(t => t.status !== '已完成').length;
   const completedCount = tasks.filter(t => t.status === '已完成').length;
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case '孵化中':
+        return glacierTheme.colors.primary;
+      case '概念验证中':
+        return glacierTheme.colors.warning;
+      case '孵化完成':
+        return glacierTheme.colors.success;
+      default:
+        return glacierTheme.colors.textSecondary;
+    }
+  };
+
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: glacierTheme.spacing.xl}}>
       {/* 统计卡片 */}
       <Row gutter={[glacierTheme.spacing.lg, glacierTheme.spacing.lg]}>
-        <Col xs={24} sm={12} lg={8}>
+        <Col xs={24} sm={12} lg={6}>
           <StatCard
             title="待评审任务"
             value={pendingCount}
@@ -70,7 +97,7 @@ const ReviewerDashboard = () => {
             color="warning"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8}>
+        <Col xs={24} sm={12} lg={6}>
           <StatCard
             title="已完成任务"
             value={completedCount}
@@ -78,12 +105,20 @@ const ReviewerDashboard = () => {
             color="success"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8}>
+        <Col xs={24} sm={12} lg={6}>
           <StatCard
             title="总任务数"
             value={tasks.length}
             icon={<FormOutlined/>}
             color="info"
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <StatCard
+            title="孵化项目"
+            value={incubationProjects.length}
+            icon={<RocketOutlined/>}
+            color="primary"
           />
         </Col>
       </Row>
@@ -184,6 +219,114 @@ const ReviewerDashboard = () => {
           )}
         />
       </GlassCard>
+
+      {/* 孵化项目列表 */}
+      {incubationProjects.length > 0 && (
+        <GlassCard>
+          <Title level={4} style={{
+            margin: 0,
+            marginBottom: glacierTheme.spacing.lg,
+            color: glacierTheme.colors.text,
+            fontWeight: 600,
+          }}>
+            我评审的孵化项目
+          </Title>
+          <List
+            dataSource={incubationProjects}
+            locale={{emptyText: <Empty description="暂无孵化项目"/>}}
+            renderItem={(item) => (
+              <List.Item
+                style={{
+                  padding: glacierTheme.spacing.lg,
+                  marginBottom: glacierTheme.spacing.md,
+                  borderRadius: glacierTheme.borderRadius.md,
+                  background: glacierTheme.colors.surface,
+                  border: `1px solid ${glacierTheme.colors.border}`,
+                  transition: `all ${glacierTheme.transitions.fast}`,
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = glacierTheme.colors.surfaceHover;
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                  e.currentTarget.style.boxShadow = glacierTheme.shadows.md;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = glacierTheme.colors.surface;
+                  e.currentTarget.style.transform = 'translateX(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                onClick={() => navigate(`/incubation/${item.project_id}`)}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <div style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: glacierTheme.borderRadius.md,
+                      background: `linear-gradient(135deg, ${getStatusColor(item.status)}40 0%, ${getStatusColor(item.status)} 100%)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      color: '#fff',
+                    }}>
+                      <RocketOutlined/>
+                    </div>
+                  }
+                  title={
+                    <span style={{
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      color: glacierTheme.colors.text,
+                    }}>
+                      {item.project_name}
+                    </span>
+                  }
+                  description={
+                    <div style={{
+                      color: glacierTheme.colors.textSecondary,
+                      fontSize: '14px',
+                      marginTop: glacierTheme.spacing.xs,
+                    }}>
+                      <span>领域：{item.domain}</span>
+                      <span style={{margin: `0 ${glacierTheme.spacing.md}`}}>|</span>
+                      <span>负责人：{item.principal_name}</span>
+                      <span style={{margin: `0 ${glacierTheme.spacing.md}`}}>|</span>
+                      <span>成熟度：{item.maturity_level}</span>
+                    </div>
+                  }
+                />
+                <div>
+                  <Tag
+                    style={{
+                      background: `${getStatusColor(item.status)}20`,
+                      border: `1px solid ${getStatusColor(item.status)}`,
+                      color: getStatusColor(item.status),
+                      padding: `${glacierTheme.spacing.xs} ${glacierTheme.spacing.md}`,
+                      borderRadius: glacierTheme.borderRadius.md,
+                    }}
+                  >
+                    {item.status}
+                  </Tag>
+                  <AnimatedButton
+                    type="link"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/incubation/${item.project_id}`);
+                    }}
+                    style={{
+                      marginLeft: glacierTheme.spacing.md,
+                      color: glacierTheme.colors.primary,
+                    }}
+                  >
+                    查看详情
+                  </AnimatedButton>
+                </div>
+              </List.Item>
+            )}
+          />
+        </GlassCard>
+      )}
 
       {/* 评审抽屉 */}
       <Drawer

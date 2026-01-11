@@ -57,10 +57,57 @@ export const pocApi = {
 export const reviewApi = {
   getMyTasks: () => api.get('/reviews/my-tasks'),
   submitReview: (taskId, data) => api.post(`/reviews/${taskId}`, data),
+  getIncubationProjects: () => api.get('/reviewer/incubation-projects'),
 };
 
 export const commonApi = {
   getAllUsers: () => api.get('/admin/users'),
+};
+
+export const fundApi = {
+  allocate: (data) => api.post('/funds', data),
+  submitExpenditure: (data) => api.post('/expenditures', data),
+  getProjectFunds: (projectId) => api.get(`/projects/${projectId}/funds`),
+};
+
+export const achievementApi = {
+  create: (data) => api.post('/achievements', data),
+  getProjectAchievements: (projectId) => api.get(`/projects/${projectId}/achievements`),
+};
+
+export const milestoneApi = {
+  getProjectMilestones: (projectId) => api.get(`/projects/${projectId}/milestones`),
+  updateMilestone: (milestoneId, data) => api.put(`/milestones/${milestoneId}`, data),
+};
+
+export const commentApi = {
+  getProjectComments: (projectId) => api.get(`/projects/${projectId}/comments`),
+  createComment: (projectId, data) => api.post(`/projects/${projectId}/comments`, data),
+};
+
+export const supporterApi = {
+  getProjects: () => api.get('/supporter/projects'),
+  submitIntention: (data) => api.post('/support/intentions', data),
+  getProjectIntentions: (projectId) => api.get(`/projects/${projectId}/intentions`),
+  updateIntentionStatus: (projectId, data) => api.put(`/projects/${projectId}/intentions`, data),
+  // 资源管理
+  createResource: (data) => api.post('/supporter/resources', data),
+  getMyResources: () => api.get('/supporter/my-resources'),
+  getResourceApplications: (resourceId) => api.get(`/resources/${resourceId}/applications`),
+  handleApplication: (applicationId, data) => api.put(`/applications/${applicationId}/handle`, data),
+};
+
+export const resourceApi = {
+  getPublicResources: (params) => api.get('/public/resources', {params}),
+  applyResource: (resourceId, data) => api.post(`/resources/${resourceId}/apply`, data),
+  getMyApplications: () => api.get('/my/resource-applications'),
+};
+
+export const statisticsApi = {
+  getStatistics: () => api.get('/statistics'),
+  getUserStatistics: () => api.get('/statistics/user'),
+  getReviewerStatistics: () => api.get('/statistics/reviewer'),
+  getSupporterStatistics: () => api.get('/statistics/supporter'),
 };
 
 export default api;

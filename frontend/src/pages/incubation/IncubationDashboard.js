@@ -1,11 +1,12 @@
 import React, {useState, useEffect} from 'react';
-import {Card, Steps, Form, Input, DatePicker, InputNumber, Button, message, Modal, Timeline, Tag, Typography, Space, Divider, Row, Col, Progress} from 'antd';
+import {Card, Steps, Form, Input, DatePicker, InputNumber, Button, message, Modal, Timeline, Tag, Typography, Space, Divider, Row, Col, Progress, Tabs} from 'antd';
 import dayjs from 'dayjs';
-import {RocketOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined, PlusOutlined, EditOutlined} from '@ant-design/icons';
+import {RocketOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined, PlusOutlined, EditOutlined, CommentOutlined} from '@ant-design/icons';
 import {useNavigate, useParams} from 'react-router-dom';
-import {incubationApi, pocApi, projectApi} from '../../api/api';
+import {incubationApi, pocApi, projectApi, commentApi} from '../../api/api';
 import GlassCard from '../../components/GlassCard';
 import AnimatedButton from '../../components/AnimatedButton';
+import ReviewerGuidance from '../../components/ReviewerGuidance';
 import {glacierTheme} from '../../styles/theme';
 
 const {Title, Text, Paragraph} = Typography;
@@ -200,148 +201,166 @@ const IncubationDashboard = () => {
         )}
       </GlassCard>
 
-      {/* 孵化计划 */}
+      {/* 孵化内容区域 - 使用 Tabs 组织 */}
       <GlassCard>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: glacierTheme.spacing.lg}}>
-          <Title level={4} style={{margin: 0, color: glacierTheme.colors.text, fontWeight: 600}}>
-            孵化计划
-          </Title>
-          <AnimatedButton
-            type="primary"
-            icon={incubation ? <EditOutlined/> : <PlusOutlined/>}
-            onClick={() => {
-              if (incubation) {
-                form.setFieldsValue({
-                  incubation_plan: incubation.incubation_plan,
-                  resources: incubation.resources,
-                  planned_end_time: incubation.planned_end_time ? dayjs(incubation.planned_end_time) : null,
-                  milestones: incubation.milestones || [],
-                  progress: incubation.progress,
-                  challenges: incubation.challenges,
-                  achievements: incubation.achievements,
-                });
-              }
-              setPlanModal(true);
-            }}
-          >
-            {incubation ? '编辑计划' : '创建计划'}
-          </AnimatedButton>
-        </div>
-        {incubation ? (
-          <div>
-            {incubation.incubation_plan && (
-              <div style={{marginBottom: glacierTheme.spacing.lg}}>
-                <Text strong style={{color: glacierTheme.colors.text}}>计划内容：</Text>
-                <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
-                  {incubation.incubation_plan}
-                </Paragraph>
-              </div>
-            )}
-            {incubation.resources && (
-              <div style={{marginBottom: glacierTheme.spacing.lg}}>
-                <Text strong style={{color: glacierTheme.colors.text}}>资源需求：</Text>
-                <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
-                  {incubation.resources}
-                </Paragraph>
-              </div>
-            )}
-            {incubation.achievements && (
-              <div style={{marginBottom: glacierTheme.spacing.lg}}>
-                <Text strong style={{color: glacierTheme.colors.text}}>取得的成果：</Text>
-                <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
-                  {incubation.achievements}
-                </Paragraph>
-              </div>
-            )}
-            {incubation.challenges && (
-              <div>
-                <Text strong style={{color: glacierTheme.colors.text}}>面临的挑战：</Text>
-                <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
-                  {incubation.challenges}
-                </Paragraph>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{textAlign: 'center', padding: glacierTheme.spacing.xl}}>
-            <Text style={{color: glacierTheme.colors.textSecondary}}>尚未创建孵化计划</Text>
-          </div>
-        )}
-      </GlassCard>
-
-      {/* 概念验证记录 */}
-      <GlassCard>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: glacierTheme.spacing.lg}}>
-          <Title level={4} style={{margin: 0, color: glacierTheme.colors.text, fontWeight: 600}}>
-            概念验证记录
-          </Title>
-          <AnimatedButton
-            type="primary"
-            icon={<PlusOutlined/>}
-            onClick={() => {
-              pocForm.resetFields();
-              setPocModal({open: true, poc: null});
-            }}
-          >
-            新建验证
-          </AnimatedButton>
-        </div>
-        {pocs.length > 0 ? (
-          <Timeline>
-            {pocs.map((poc) => (
-              <Timeline.Item
-                key={poc.poc_id}
-                color={getStatusColor(poc.status)}
-                dot={poc.status === '已验证' ? <CheckCircleOutlined/> : <FileTextOutlined/>}
-              >
-                <div style={{
-                  background: glacierTheme.colors.surface,
-                  padding: glacierTheme.spacing.md,
-                  borderRadius: glacierTheme.borderRadius.md,
-                  marginBottom: glacierTheme.spacing.md,
-                }}>
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: glacierTheme.spacing.xs}}>
-                    <Title level={5} style={{margin: 0, color: glacierTheme.colors.text}}>
-                      {poc.title}
-                    </Title>
-                    <Tag style={{
-                      background: `${getStatusColor(poc.status)}20`,
-                      border: `1px solid ${getStatusColor(poc.status)}`,
-                      color: getStatusColor(poc.status),
-                    }}>
-                      {poc.status}
-                    </Tag>
+        <Tabs
+          items={[
+            {
+              key: '1',
+              label: '孵化计划',
+              children: (
+                <div>
+                  <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: glacierTheme.spacing.md}}>
+                    <AnimatedButton
+                      type="primary"
+                      icon={incubation ? <EditOutlined/> : <PlusOutlined/>}
+                      onClick={() => {
+                        if (incubation) {
+                          form.setFieldsValue({
+                            incubation_plan: incubation.incubation_plan,
+                            resources: incubation.resources,
+                            planned_end_time: incubation.planned_end_time ? dayjs(incubation.planned_end_time) : null,
+                            milestones: incubation.milestones || [],
+                            progress: incubation.progress,
+                            challenges: incubation.challenges,
+                            achievements: incubation.achievements,
+                          });
+                        }
+                        setPlanModal(true);
+                      }}
+                    >
+                      {incubation ? '编辑计划' : '创建计划'}
+                    </AnimatedButton>
                   </div>
-                  {poc.description && (
-                    <Paragraph style={{color: glacierTheme.colors.textSecondary, marginBottom: glacierTheme.spacing.xs}}>
-                      {poc.description}
-                    </Paragraph>
-                  )}
-                  {poc.verification_objective && (
-                    <div style={{marginTop: glacierTheme.spacing.xs}}>
-                      <Text strong style={{color: glacierTheme.colors.text}}>验证目标：</Text>
-                      <Text style={{color: glacierTheme.colors.textSecondary, marginLeft: glacierTheme.spacing.xs}}>
-                        {poc.verification_objective}
-                      </Text>
+                  {incubation ? (
+                    <div>
+                      {incubation.incubation_plan && (
+                        <div style={{marginBottom: glacierTheme.spacing.lg}}>
+                          <Text strong style={{color: glacierTheme.colors.text}}>孵化计划：</Text>
+                          <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
+                            {incubation.incubation_plan}
+                          </Paragraph>
+                        </div>
+                      )}
+                      {incubation.resources && (
+                        <div style={{marginBottom: glacierTheme.spacing.lg}}>
+                          <Text strong style={{color: glacierTheme.colors.text}}>资源需求：</Text>
+                          <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
+                            {incubation.resources}
+                          </Paragraph>
+                        </div>
+                      )}
+                      {incubation.achievements && (
+                        <div style={{marginBottom: glacierTheme.spacing.lg}}>
+                          <Text strong style={{color: glacierTheme.colors.text}}>取得的成果：</Text>
+                          <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
+                            {incubation.achievements}
+                          </Paragraph>
+                        </div>
+                      )}
+                      {incubation.challenges && (
+                        <div>
+                          <Text strong style={{color: glacierTheme.colors.text}}>面临的挑战：</Text>
+                          <Paragraph style={{marginTop: glacierTheme.spacing.xs, color: glacierTheme.colors.textSecondary}}>
+                            {incubation.challenges}
+                          </Paragraph>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {poc.conclusion && (
-                    <div style={{marginTop: glacierTheme.spacing.xs}}>
-                      <Text strong style={{color: glacierTheme.colors.text}}>结论：</Text>
-                      <Text style={{color: glacierTheme.colors.textSecondary, marginLeft: glacierTheme.spacing.xs}}>
-                        {poc.conclusion}
-                      </Text>
+                  ) : (
+                    <div style={{textAlign: 'center', padding: glacierTheme.spacing.xl}}>
+                      <Text style={{color: glacierTheme.colors.textSecondary}}>尚未创建孵化计划</Text>
                     </div>
                   )}
                 </div>
-              </Timeline.Item>
-            ))}
-          </Timeline>
-        ) : (
-          <div style={{textAlign: 'center', padding: glacierTheme.spacing.xl}}>
-            <Text style={{color: glacierTheme.colors.textSecondary}}>暂无概念验证记录</Text>
-          </div>
-        )}
+              ),
+            },
+            {
+              key: '2',
+              label: '概念验证',
+              children: (
+                <div>
+                  <div style={{display: 'flex', justifyContent: 'flex-end', marginBottom: glacierTheme.spacing.md}}>
+                    <AnimatedButton
+                      type="primary"
+                      icon={<PlusOutlined/>}
+                      onClick={() => {
+                        pocForm.resetFields();
+                        setPocModal({open: true, poc: null});
+                      }}
+                    >
+                      新建验证
+                    </AnimatedButton>
+                  </div>
+                  {pocs.length > 0 ? (
+                    <Timeline>
+                      {pocs.map((poc) => (
+                        <Timeline.Item
+                          key={poc.poc_id}
+                          color={getStatusColor(poc.status)}
+                          dot={poc.status === '已验证' ? <CheckCircleOutlined/> : <FileTextOutlined/>}
+                        >
+                          <div style={{
+                            background: glacierTheme.colors.surface,
+                            padding: glacierTheme.spacing.md,
+                            borderRadius: glacierTheme.borderRadius.md,
+                            marginBottom: glacierTheme.spacing.md,
+                          }}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: glacierTheme.spacing.xs}}>
+                              <Title level={5} style={{margin: 0, color: glacierTheme.colors.text}}>
+                                {poc.title}
+                              </Title>
+                              <Tag style={{
+                                background: `${getStatusColor(poc.status)}20`,
+                                border: `1px solid ${getStatusColor(poc.status)}`,
+                                color: getStatusColor(poc.status),
+                              }}>
+                                {poc.status}
+                              </Tag>
+                            </div>
+                            {poc.description && (
+                              <Paragraph style={{color: glacierTheme.colors.textSecondary, marginBottom: glacierTheme.spacing.xs}}>
+                                {poc.description}
+                              </Paragraph>
+                            )}
+                            {poc.verification_objective && (
+                              <div style={{marginTop: glacierTheme.spacing.xs}}>
+                                <Text strong style={{color: glacierTheme.colors.text}}>验证目标：</Text>
+                                <Text style={{color: glacierTheme.colors.textSecondary, marginLeft: glacierTheme.spacing.xs}}>
+                                  {poc.verification_objective}
+                                </Text>
+                              </div>
+                            )}
+                            {poc.conclusion && (
+                              <div style={{marginTop: glacierTheme.spacing.xs}}>
+                                <Text strong style={{color: glacierTheme.colors.text}}>结论：</Text>
+                                <Text style={{color: glacierTheme.colors.textSecondary, marginLeft: glacierTheme.spacing.xs}}>
+                                  {poc.conclusion}
+                                </Text>
+                              </div>
+                            )}
+                          </div>
+                        </Timeline.Item>
+                      ))}
+                    </Timeline>
+                  ) : (
+                    <div style={{textAlign: 'center', padding: glacierTheme.spacing.xl}}>
+                      <Text style={{color: glacierTheme.colors.textSecondary}}>暂无概念验证记录</Text>
+                    </div>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: '3',
+              label: '评审指导',
+              icon: <CommentOutlined/>,
+              children: (
+                <ReviewerGuidance projectId={projectId}/>
+              ),
+            },
+          ]}
+        />
       </GlassCard>
 
       {/* 孵化计划模态框 */}

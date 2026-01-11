@@ -4,6 +4,7 @@
   "private": true,
   "proxy": "http://127.0.0.1:5000",
   "dependencies": {
+    "@ant-design/charts": "^2.6.7",
     "@ant-design/icons": "^6.1.0",
     "antd": "^5.29.2",
     "axios": "^1.13.2",

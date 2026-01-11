@@ -12,7 +12,7 @@ class User(db.Model):
     user_name = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     real_name = db.Column(db.String(50))
-    role = db.Column(db.Enum('项目参与者', '评审人', '秘书', '管理员'),
+    role = db.Column(db.Enum('项目参与者', '评审人', '秘书', '管理员', '企业支持者'),
                      nullable=False)
     affiliation = db.Column(db.String(50))
     email = db.Column(db.String(50))
@@ -192,5 +192,84 @@ class ProofOfConcept(db.Model):
     evidence_files = db.Column(db.Text)  # 证据文件（JSON格式存储）
     metrics = db.Column(db.Text)  # 关键指标（JSON格式存储）
     conclusion = db.Column(db.Text)  # 结论
+    create_time = db.Column(db.DateTime, default=datetime.now)
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class Milestone(db.Model):
+    """项目里程碑"""
+    __tablename__ = 'Milestone'
+    milestone_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('Project.project_id'),
+                           nullable=False)
+    title = db.Column(db.String(100), nullable=False)  # 节点名称
+    due_date = db.Column(db.DateTime)  # 截止日期
+    status = db.Column(db.Enum('未开始', '进行中', '已完成'),
+                       default='未开始', nullable=False)
+    deliverable = db.Column(db.Text)  # 交付物描述
+    create_time = db.Column(db.DateTime, default=datetime.now)
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class IncubationComment(db.Model):
+    """孵化期沟通留言"""
+    __tablename__ = 'IncubationComment'
+    comment_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('Project.project_id'),
+                           nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('User.user_id'),
+                        nullable=False)
+    content = db.Column(db.Text, nullable=False)  # 留言内容
+    parent_id = db.Column(db.Integer, db.ForeignKey('IncubationComment.comment_id'))  # 父评论ID，用于回复
+    create_time = db.Column(db.DateTime, default=datetime.now)
+
+
+class SupportIntention(db.Model):
+    """企业支持者对接意向"""
+    __tablename__ = 'SupportIntention'
+    intention_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('Project.project_id'),
+                           nullable=False)
+    supporter_id = db.Column(db.Integer, db.ForeignKey('User.user_id'),
+                             nullable=False)
+    support_type = db.Column(db.Enum('资金支持', '产业资源', '市场渠道', '其他'),
+                             nullable=False)
+    message = db.Column(db.Text)  # 留言说明
+    status = db.Column(db.Enum('待处理', '已对接', '已婉拒'),
+                       default='待处理', nullable=False)
+    create_time = db.Column(db.DateTime, default=datetime.now)
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class IncubationResource(db.Model):
+    """孵化资源表"""
+    __tablename__ = 'IncubationResource'
+    resource_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    provider_id = db.Column(db.Integer, db.ForeignKey('User.user_id'),
+                            nullable=False)
+    title = db.Column(db.String(200), nullable=False)  # 资源标题
+    resource_type = db.Column(db.Enum('生产合同', '技术支持', '供应链服务', '场地支持', '资金支持', '其他'),
+                              nullable=False)
+    description = db.Column(db.Text)  # 详细描述
+    status = db.Column(db.Enum('开放中', '已关闭'),
+                       default='开放中', nullable=False)
+    create_time = db.Column(db.DateTime, default=datetime.now)
+    update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class ResourceApplication(db.Model):
+    """资源对接申请表"""
+    __tablename__ = 'ResourceApplication'
+    application_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    resource_id = db.Column(db.Integer, db.ForeignKey('IncubationResource.resource_id'),
+                            nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('Project.project_id'),
+                           nullable=False)
+    applicant_id = db.Column(db.Integer, db.ForeignKey('User.user_id'),
+                             nullable=False)
+    status = db.Column(db.Enum('待处理', '对接中', '已达成', '已拒绝'),
+                       default='待处理', nullable=False)
+    message = db.Column(db.Text)  # 申请留言/需求说明
+    reply = db.Column(db.Text)  # 企业回复内容
     create_time = db.Column(db.DateTime, default=datetime.now)
     update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
