@@ -232,7 +232,7 @@ class SupportIntention(db.Model):
                            nullable=False)
     supporter_id = db.Column(db.Integer, db.ForeignKey('User.user_id'),
                              nullable=False)
-    support_type = db.Column(db.Enum('资金支持', '产业资源', '市场渠道', '其他'),
+    support_type = db.Column(db.Enum('资金支持', '产业资源', '市场渠道', '技术支持', '其他'),
                              nullable=False)
     message = db.Column(db.Text)  # 留言说明
     status = db.Column(db.Enum('待处理', '已对接', '已婉拒'),
